@@ -1,34 +1,38 @@
 mod complex;
+mod operator;
 mod vector;
 
 use complex::C64;
-use vector::{Bra, Ket, Vector};
+use operator::HermitianMatrix;
+use vector::{Bra, InnerProductDualSpace, Ket, Vector};
 
 fn main() {
-    let ket1: Vector<Ket, 3> =
-        Vector::new([C64::new(1.0, 0.0), C64::new(0.5, 0.5), C64::new(0.75, 0.25)]);
+    let u: Vector<Ket, 2> = Vector::from_arr([C64::new(1.0, 0.0), C64::new(0.0, 0.0)]);
+    let d: Vector<Ket, 2> = Vector::from_arr([C64::new(0.0, 0.0), C64::new(1.0, 0.0)]);
 
-    let ket2: Vector<Ket, 5> = Vector::new([
-        C64::new(1.0, 0.0),
-        C64::new(0.5, 0.5),
-        C64::new(0.75, 0.25),
-        C64::new(-0.55, 0.8),
-        C64::new(0.1, 0.2),
-    ]);
+    println!("\nUp spin state vector {}", &u);
+    println!("\nDown spin state vector {}", &d);
 
-    let bra1 = ket1.to_bra();
-    let bra2 = ket2.to_bra();
+    let sigma_z: HermitianMatrix<2> = HermitianMatrix::from_arr([
+        [C64::new(1.0, 0.0), C64::new(0.0, 0.0)],
+        [C64::new(0.0, 0.0), C64::new(-1.0, 0.0)],
+    ])
+    .unwrap();
+    let sigma_x: HermitianMatrix<2> = HermitianMatrix::from_arr([
+        [C64::new(0.0, 0.0), C64::new(1.0, 0.0)],
+        [C64::new(1.0, 0.0), C64::new(0.0, 0.0)],
+    ])
+    .unwrap();
+    let sigma_y: HermitianMatrix<2> = HermitianMatrix::from_arr([
+        [C64::new(0.0, 0.0), C64::new(0.0, -1.0)],
+        [C64::new(0.0, 1.0), C64::new(0.0, 0.0)],
+    ])
+    .unwrap();
 
-    let bra3: Vector<Bra, 3> =
-        Vector::new([C64::new(0.8, 0.2), C64::new(-1.1, 0.9), C64::new(0.6, 0.1)]);
+    println!("\nSpin operator (z): {:?}", &sigma_z);
+    println!("\nSpin operator (x): {:?}", &sigma_x);
+    println!("\nSpin operator (y): {:?}", &sigma_y);
 
-    println!("\nKet1: {}", &ket1);
-    println!("\nKet2: {}", &ket2);
-    println!("\nBra1: {}", &bra1);
-    println!("\nBra2: {}", &bra2);
-    println!("\nKet1 Normalized: {}", &ket1.to_normalized());
-    println!(
-        "\nInner Product of Ket1 and Bra3: {:?}",
-        ket1.inner_prod(&bra3)
-    );
+    println!("\nSz|u> = {}", &sigma_z * &u);
+    println!("\nSz|d> = {}", &sigma_z * &d);
 }

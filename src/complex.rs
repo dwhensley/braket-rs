@@ -1,7 +1,7 @@
-use core::ops::{Add, Div, Mul, Sub};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 /// Complex number with each component represented with `f64`s.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct C64 {
     re: f64,
     im: f64,
@@ -32,77 +32,116 @@ impl C64 {
     pub fn imag(&self) -> f64 {
         self.im
     }
+    pub const fn zero() -> Self {
+        Self { re: 0.0, im: 0.0 }
+    }
 }
 
 impl Default for C64 {
     fn default() -> Self {
-        Self { re: 0.0, im: 0.0 }
+        Self::zero()
     }
 }
 
 impl Add for C64 {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self {
+    fn add(self, rhs: Self) -> Self {
         Self {
-            re: self.re + other.re,
-            im: self.im + other.im,
+            re: self.re + rhs.re,
+            im: self.im + rhs.im,
         }
+    }
+}
+
+impl AddAssign for C64 {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
     }
 }
 
 impl Sub for C64 {
     type Output = Self;
 
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, rhs: Self) -> Self {
         Self {
-            re: self.re - other.re,
-            im: self.im - other.im,
+            re: self.re - rhs.re,
+            im: self.im - rhs.im,
         }
+    }
+}
+
+impl SubAssign for C64 {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
 impl Mul<C64> for C64 {
     type Output = Self;
 
-    fn mul(self, other: Self) -> Self {
+    fn mul(self, rhs: Self) -> Self {
         Self {
-            re: self.re * other.re - self.im * other.im,
-            im: self.re * other.im + self.im * other.re,
+            re: self.re * rhs.re - self.im * rhs.im,
+            im: self.re * rhs.im + self.im * rhs.re,
         }
+    }
+}
+
+impl MulAssign<C64> for C64 {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
     }
 }
 
 impl Mul<f64> for C64 {
     type Output = Self;
 
-    fn mul(self, other: f64) -> Self {
+    fn mul(self, rhs: f64) -> Self {
         Self {
-            re: self.re * other,
-            im: self.im * other,
+            re: self.re * rhs,
+            im: self.im * rhs,
         }
+    }
+}
+
+impl MulAssign<f64> for C64 {
+    fn mul_assign(&mut self, rhs: f64) {
+        *self = *self * rhs;
     }
 }
 
 impl Div<C64> for C64 {
     type Output = Self;
 
-    fn div(self, other: Self) -> Self {
+    fn div(self, rhs: Self) -> Self {
         let denom = self.re * self.re + self.im * self.im;
-        let re = (other.re * self.re + other.im * self.im) / denom;
-        let im = (other.im * self.re - other.re * self.im) / denom;
+        let re = (rhs.re * self.re + rhs.im * self.im) / denom;
+        let im = (rhs.im * self.re - rhs.re * self.im) / denom;
         Self { re, im }
+    }
+}
+
+impl DivAssign<C64> for C64 {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = *self / rhs;
     }
 }
 
 impl Div<f64> for C64 {
     type Output = Self;
 
-    fn div(self, other: f64) -> Self {
+    fn div(self, rhs: f64) -> Self {
         Self {
-            re: self.re / other,
-            im: self.im / other,
+            re: self.re / rhs,
+            im: self.im / rhs,
         }
+    }
+}
+
+impl DivAssign<f64> for C64 {
+    fn div_assign(&mut self, rhs: f64) {
+        *self = *self / rhs;
     }
 }
 
