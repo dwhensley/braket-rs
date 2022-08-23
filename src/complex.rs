@@ -1,3 +1,4 @@
+use core::fmt;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 /// Complex number with each component represented with `f64`s.
@@ -35,11 +36,24 @@ impl C64 {
     pub const fn zero() -> Self {
         Self { re: 0.0, im: 0.0 }
     }
+    pub const fn one() -> Self {
+        Self { re: 1.0, im: 0.0 }
+    }
+    pub const fn i() -> Self {
+        Self { re: 0.0, im: 1.0 }
+    }
 }
 
 impl Default for C64 {
     fn default() -> Self {
         Self::zero()
+    }
+}
+
+impl fmt::Display for C64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let join_op = if self.imag() >= 0.0 { "+" } else { "-" };
+        write!(f, "{} {} {}i", self.real(), join_op, self.imag().abs())
     }
 }
 

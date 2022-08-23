@@ -2,7 +2,7 @@ use core::fmt;
 use core::ops::Mul;
 
 use crate::complex::C64;
-use crate::vector::{Bra, Ket, Vector};
+use crate::vector::{Ket, Vector};
 
 #[derive(Debug)]
 pub enum OperatorError {
@@ -21,7 +21,7 @@ impl fmt::Display for OperatorError {
 }
 
 /// DxD Hermitian operator.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct HermitianMatrix<const D: usize> {
     pub(crate) inner: [[C64; D]; D],
 }
@@ -39,14 +39,36 @@ impl<const D: usize> HermitianMatrix<D> {
     }
 }
 
-impl<const D: usize> Mul<&Vector<Ket, D>> for &HermitianMatrix<D> {
+impl<const D: usize> fmt::Display for HermitianMatrix<D> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\n[")?;
+        for ridx in 0..D {
+            if ridx > 0 {
+                write!(f, " [")?;
+            } else {
+                write!(f, "[")?;
+            }
+            for cidx in 0..D - 1 {
+                write!(f, "{}, ", self.inner[ridx][cidx])?;
+            }
+            if ridx < D - 1 {
+                writeln!(f, "{}]", self.inner[ridx][D - 1])?;
+            } else {
+                write!(f, "{}]]", self.inner[ridx][D - 1])?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<const D: usize> Mul<Vector<Ket, D>> for HermitianMatrix<D> {
     type Output = Vector<Ket, D>;
 
-    fn mul(self, rhs: &Vector<Ket, D>) -> Vector<Ket, D> {
+    fn mul(self, rhs: Vector<Ket, D>) -> Vector<Ket, D> {
         let mut out_ket: Vector<Ket, D> = Vector::default();
         for ridx in 0..D {
             let mut out = C64::zero();
-            for (&m, &v) in self.inner[ridx].iter().zip(rhs) {
+            for (m, v) in self.inner[ridx].into_iter().zip(rhs.into_iter()) {
                 out += m * v;
             }
             out_ket[ridx] = out;

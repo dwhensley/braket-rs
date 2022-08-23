@@ -1,7 +1,7 @@
 use core::fmt;
 use core::iter::IntoIterator;
 use core::marker::PhantomData;
-use core::ops::{Index, IndexMut, Mul};
+use core::ops::{Add, Index, IndexMut, Mul, Sub};
 use core::slice::SliceIndex;
 
 use crate::complex::C64;
@@ -34,6 +34,8 @@ pub struct Vector<S: BraKet, const D: usize> {
     inner: [C64; D],
     _s: PhantomData<S>,
 }
+
+impl<S: BraKet, const D: usize> Copy for Vector<S, D> {}
 
 impl<S: BraKet, const D: usize> Vector<S, D> {
     pub fn new() -> Self {
@@ -120,17 +122,37 @@ impl<S: BraKet, const D: usize> Default for Vector<S, D> {
     }
 }
 
+impl<S: BraKet, const D: usize> Mul<Vector<S, D>> for f64 {
+    type Output = Vector<S, D>;
+
+    fn mul(self, rhs: Vector<S, D>) -> Vector<S, D> {
+        let mut out = rhs;
+        out.iter_mut().for_each(|v| *v *= self);
+        out
+    }
+}
+
+impl<S: BraKet, const D: usize> Mul<Vector<S, D>> for C64 {
+    type Output = Vector<S, D>;
+
+    fn mul(self, rhs: Vector<S, D>) -> Vector<S, D> {
+        let mut out = rhs;
+        out.iter_mut().for_each(|v| *v *= self);
+        out
+    }
+}
+
 impl<const D: usize> fmt::Display for Vector<Bra, D> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(<|) [")?;
+        write!(f, "\n<| [")?;
         for idx in 0..D - 1 {
             let v = self[idx];
             let join_op = if v.imag() >= 0.0 { "+" } else { "-" };
-            write!(f, "{} {} {}i, ", v.real(), join_op, v.imag())?;
+            write!(f, "{} {} {}i, ", v.real(), join_op, v.imag().abs())?;
         }
         let v = self[D - 1];
         let join_op = if v.imag() >= 0.0 { "+" } else { "-" };
-        write!(f, "{} {} {}i", v.real(), join_op, v.imag())?;
+        write!(f, "{} {} {}i", v.real(), join_op, v.imag().abs())?;
         write!(f, "]")
     }
 }
@@ -154,7 +176,7 @@ impl<const D: usize> InnerProductDualSpace for Vector<Bra, D> {
         self.to_ket()
     }
     fn inner_product(&self, dual: &Self::Dual) -> Self::Scalar {
-        self * dual
+        *self * *dual
     }
     fn normalize(&mut self) {
         let ip = self.inner_product(&(&*self).to_ket());
@@ -163,10 +185,34 @@ impl<const D: usize> InnerProductDualSpace for Vector<Bra, D> {
     }
 }
 
-impl<const D: usize> Mul<&HermitianMatrix<D>> for &Vector<Bra, D> {
+impl<const D: usize> Add for Vector<Bra, D> {
     type Output = Vector<Bra, D>;
 
-    fn mul(self, rhs: &HermitianMatrix<D>) -> Vector<Bra, D> {
+    fn add(self, rhs: Vector<Bra, D>) -> Vector<Bra, D> {
+        let mut arr: [C64; D] = [C64::zero(); D];
+        for ((&l, &r), a) in self.iter().zip(rhs.iter()).zip(arr.iter_mut()) {
+            *a = l + r;
+        }
+        Vector::from_arr(arr)
+    }
+}
+
+impl<const D: usize> Sub for Vector<Bra, D> {
+    type Output = Vector<Bra, D>;
+
+    fn sub(self, rhs: Vector<Bra, D>) -> Vector<Bra, D> {
+        let mut arr: [C64; D] = [C64::zero(); D];
+        for ((&l, &r), a) in self.iter().zip(rhs.iter()).zip(arr.iter_mut()) {
+            *a = l - r;
+        }
+        Vector::from_arr(arr)
+    }
+}
+
+impl<const D: usize> Mul<HermitianMatrix<D>> for Vector<Bra, D> {
+    type Output = Vector<Bra, D>;
+
+    fn mul(self, rhs: HermitianMatrix<D>) -> Vector<Bra, D> {
         let mut out_bra: Vector<Bra, D> = Vector::default();
         for ridx in 0..D {
             let b = self[ridx];
@@ -178,28 +224,27 @@ impl<const D: usize> Mul<&HermitianMatrix<D>> for &Vector<Bra, D> {
     }
 }
 
-impl<const D: usize> Mul<&Vector<Ket, D>> for &Vector<Bra, D> {
+impl<const D: usize> Mul<Vector<Ket, D>> for Vector<Bra, D> {
     type Output = C64;
 
-    fn mul(self, rhs: &Vector<Ket, D>) -> C64 {
-        self.iter()
-            .copied()
-            .zip(rhs.iter().copied())
+    fn mul(self, rhs: Vector<Ket, D>) -> C64 {
+        self.into_iter()
+            .zip(rhs.into_iter())
             .fold(C64::new(0.0, 0.0), |acc, (a, b)| acc + a * b)
     }
 }
 
 impl<const D: usize> fmt::Display for Vector<Ket, D> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(|>) [")?;
+        write!(f, "\n|> [")?;
         for idx in 0..D - 1 {
             let v = self[idx];
             let join_op = if v.imag() >= 0.0 { "+" } else { "-" };
-            write!(f, "{} {} {}i, ", v.real(), join_op, v.imag())?;
+            write!(f, "{} {} {}i, ", v.real(), join_op, v.imag().abs())?;
         }
         let v = self[D - 1];
         let join_op = if v.imag() >= 0.0 { "+" } else { "-" };
-        write!(f, "{} {} {}i", v.real(), join_op, v.imag())?;
+        write!(f, "{} {} {}i", v.real(), join_op, v.imag().abs())?;
         write!(f, "]")
     }
 }
@@ -215,6 +260,30 @@ impl<const D: usize> Vector<Ket, D> {
     }
 }
 
+impl<const D: usize> Add for Vector<Ket, D> {
+    type Output = Vector<Ket, D>;
+
+    fn add(self, rhs: Vector<Ket, D>) -> Vector<Ket, D> {
+        let mut arr: [C64; D] = [C64::zero(); D];
+        for ((&l, &r), a) in self.iter().zip(rhs.iter()).zip(arr.iter_mut()) {
+            *a = l + r;
+        }
+        Vector::from_arr(arr)
+    }
+}
+
+impl<const D: usize> Sub for Vector<Ket, D> {
+    type Output = Vector<Ket, D>;
+
+    fn sub(self, rhs: Vector<Ket, D>) -> Vector<Ket, D> {
+        let mut arr: [C64; D] = [C64::zero(); D];
+        for ((&l, &r), a) in self.iter().zip(rhs.iter()).zip(arr.iter_mut()) {
+            *a = l - r;
+        }
+        Vector::from_arr(arr)
+    }
+}
+
 impl<const D: usize> InnerProductDualSpace for Vector<Ket, D> {
     type Dual = Vector<Bra, D>;
     type Scalar = C64;
@@ -223,7 +292,7 @@ impl<const D: usize> InnerProductDualSpace for Vector<Ket, D> {
         self.to_bra()
     }
     fn inner_product(&self, dual: &Self::Dual) -> Self::Scalar {
-        dual * self
+        *dual * *self
     }
     fn normalize(&mut self) {
         let ip = self.inner_product(&(&*self).to_bra());
